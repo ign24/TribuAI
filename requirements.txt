@@ -1,0 +1,34 @@
+# Core LangGraph and LangChain dependencies
+langgraph>=0.4.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-community>=0.3.0
+
+# LLM and AI dependencies
+openai>=1.0.0
+
+# HTTP client for API calls
+httpx>=0.25.0
+requests>=2.31.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# Data handling and utilities
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Logging and monitoring
+loguru>=0.7.0
+
+# Optional UI dependencies
+streamlit>=1.28.0
+
+# Development and testing
+pytest>=7.0.0
+black>=23.0.0
+isort>=5.12.0
+
+# Type checking
+mypy>=1.0.0 

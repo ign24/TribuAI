@@ -1,0 +1,118 @@
+{
+  "profiles": [
+    {
+      "id": "profile_1",
+      "session_id": "session_a1b2c3d4_143022",
+      "timestamp": "2024-01-15T14:30:22Z",
+      "user_input": "I love Japanese cinema, brutalist architecture, and old-school hip hop.",
+      "cultural_profile": {
+        "identity": "Urban Creative Minimalist",
+        "music": ["old-school hip hop", "hip hop", "rap", "underground hip hop"],
+        "style": ["minimalist", "streetwear", "urban aesthetic", "brutalist influence"],
+        "destinations": ["Tokyo", "Berlin", "New York", "London", "Amsterdam"],
+        "values": ["authenticity", "urban culture", "creativity", "minimalism"],
+        "audiences": ["urban creatives", "hip hop culture", "minimalist enthusiasts", "brutalist admirers"]
+      },
+      "recommendations": {
+        "brands": ["Uniqlo", "Supreme", "Muji", "BAPE", "Patagonia", "Nike"],
+        "places": ["Tokyo", "Berlin", "Portland", "Amsterdam", "Melbourne"],
+        "audiences": ["Neo-minimalist Creatives", "Digital Nomads", "Urban Millennials"],
+        "experiences": [
+          "Visit minimalist art galleries",
+          "Explore brutalist architecture tours",
+          "Attend underground hip hop events",
+          "Join creative coworking spaces"
+        ]
+      },
+      "matching": {
+        "suggested_match": {
+          "name": "Sofia",
+          "age": 28,
+          "location": "Mexico City",
+          "cultural_overlap": 85,
+          "shared_interests": ["minimalism", "hip hop culture", "urban aesthetics"]
+        },
+        "match_confidence": 0.85,
+        "shared_audiences": ["Urban Creatives", "Minimalist Enthusiasts"]
+      }
+    },
+    {
+      "id": "profile_2",
+      "session_id": "session_e5f6g7h8_155647",
+      "timestamp": "2024-01-15T15:56:47Z",
+      "user_input": "I'm into indie rock, street art, and sustainable fashion.",
+      "cultural_profile": {
+        "identity": "Indie Culture Enthusiast",
+        "music": ["indie rock", "alternative", "indie folk", "post-rock"],
+        "style": ["sustainable fashion", "vintage", "eco-friendly", "artistic"],
+        "destinations": ["Portland", "Austin", "Nashville", "Asheville", "Boulder"],
+        "values": ["sustainability", "creativity", "authenticity", "community"],
+        "audiences": ["indie culture", "sustainability advocates", "creative professionals"]
+      },
+      "recommendations": {
+        "brands": ["Patagonia", "Reformation", "Everlane", "Allbirds", "Veja"],
+        "places": ["Portland", "Austin", "Nashville", "Asheville", "Boulder"],
+        "audiences": ["Sustainability Advocates", "Indie Culture Enthusiasts", "Creative Professionals"],
+        "experiences": [
+          "Visit independent record stores",
+          "Explore street art districts",
+          "Shop at sustainable fashion boutiques",
+          "Attend indie music festivals"
+        ]
+      },
+      "matching": {
+        "suggested_match": {
+          "name": "Alex",
+          "age": 25,
+          "location": "Portland, OR",
+          "cultural_overlap": 82,
+          "shared_interests": ["indie music", "sustainability", "street art"]
+        },
+        "match_confidence": 0.82,
+        "shared_audiences": ["Indie Culture Enthusiasts", "Sustainability Advocates"]
+      }
+    },
+    {
+      "id": "profile_3",
+      "session_id": "session_i9j0k1l2_172315",
+      "timestamp": "2024-01-15T17:23:15Z",
+      "user_input": "I enjoy electronic music, minimalist design, and coffee culture.",
+      "cultural_profile": {
+        "identity": "Digital Nomad",
+        "music": ["electronic", "ambient", "techno", "IDM", "chillwave"],
+        "style": ["minimalist", "tech-inspired", "comfortable", "functional"],
+        "destinations": ["Berlin", "Amsterdam", "Stockholm", "Vancouver", "Melbourne"],
+        "values": ["efficiency", "creativity", "work-life balance", "community"],
+        "audiences": ["digital nomads", "tech professionals", "creative freelancers"]
+      },
+      "recommendations": {
+        "brands": ["Apple", "Uniqlo", "Muji", "Allbirds", "Away"],
+        "places": ["Berlin", "Amsterdam", "Stockholm", "Vancouver", "Melbourne"],
+        "audiences": ["Digital Nomads", "Tech Professionals", "Creative Freelancers"],
+        "experiences": [
+          "Visit specialty coffee shops",
+          "Work from creative coworking spaces",
+          "Attend electronic music events",
+          "Explore minimalist design exhibitions"
+        ]
+      },
+      "matching": {
+        "suggested_match": {
+          "name": "Marcus",
+          "age": 31,
+          "location": "Berlin, Germany",
+          "cultural_overlap": 88,
+          "shared_interests": ["electronic music", "minimalism", "coffee culture"]
+        },
+        "match_confidence": 0.88,
+        "shared_audiences": ["Digital Nomads", "Tech Professionals"]
+      }
+    }
+  ],
+  "metadata": {
+    "total_profiles": 3,
+    "generated_date": "2024-01-15",
+    "version": "1.0.0",
+    "description": "Sample cultural profiles generated by TribuAI for demonstration purposes"
+  }
+} 

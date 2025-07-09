@@ -1,0 +1,51 @@
+{
+  "sample_inputs": [
+    {
+      "id": "sample_1",
+      "input": "I love Japanese cinema, brutalist architecture, and old-school hip hop.",
+      "description": "Urban creative with minimalist aesthetic and hip hop culture",
+      "expected_profile": "Urban Creative Minimalist"
+    },
+    {
+      "id": "sample_2", 
+      "input": "I'm into indie rock, street art, and sustainable fashion.",
+      "description": "Indie culture enthusiast with environmental consciousness",
+      "expected_profile": "Indie Culture Enthusiast"
+    },
+    {
+      "id": "sample_3",
+      "input": "I enjoy electronic music, minimalist design, and coffee culture.",
+      "description": "Digital nomad with refined taste and community focus",
+      "expected_profile": "Digital Nomad"
+    },
+    {
+      "id": "sample_4",
+      "input": "I'm passionate about vintage fashion, jazz music, and European cities.",
+      "description": "Classic sophisticate with appreciation for timeless culture",
+      "expected_profile": "Classic Sophisticate"
+    },
+    {
+      "id": "sample_5",
+      "input": "I love streetwear, trap music, and urban street culture.",
+      "description": "Street culture enthusiast with contemporary urban aesthetic",
+      "expected_profile": "Street Culture Enthusiast"
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "test_1",
+      "input": "I'm into yoga, meditation, and conscious living.",
+      "category": "wellness_culture"
+    },
+    {
+      "id": "test_2", 
+      "input": "I love classical music, fine art, and luxury travel.",
+      "category": "luxury_culture"
+    },
+    {
+      "id": "test_3",
+      "input": "I'm passionate about activism, punk rock, and DIY culture.",
+      "category": "counter_culture"
+    }
+  ]
+} 

@@ -66,35 +66,10 @@ def load_mock_data(file_path: str) -> Dict[str, Any]:
         return data
     except FileNotFoundError:
         logger.warning(f"Mock data file {file_path} not found, using defaults")
-        return get_default_mock_data()
+        return {}
     except json.JSONDecodeError as e:
         logger.error(f"Error parsing JSON from {file_path}: {e}")
-        return get_default_mock_data()
-
-
-def get_default_mock_data() -> Dict[str, Any]:
-    """
-    Get default mock data for TribuAI.
-    
-    Returns:
-        Dictionary with default mock data
-    """
-    return {
-        "sample_inputs": [
-            "I love Japanese cinema, brutalist architecture, and old-school hip hop.",
-            "I'm into indie rock, street art, and sustainable fashion.",
-            "I enjoy electronic music, minimalist design, and coffee culture."
-        ],
-        "sample_profiles": [
-            {
-                "identity": "Urban Creative Minimalist",
-                "music": ["indie", "electronic", "alternative"],
-                "style": ["minimalist", "sustainable", "streetwear"],
-                "destinations": ["Berlin", "Tokyo", "Portland"],
-                "values": ["sustainability", "creativity"]
-            }
-        ]
-    }
+        return {}
 
 
 def save_results(results: Dict[str, Any], session_id: str) -> str:

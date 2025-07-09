@@ -83,7 +83,7 @@ class TribuAI:
                 logger.error(f"Error in interactive mode: {e}")
                 print(f"❌ An error occurred: {e}")
     
-    def run_demo(self, mock_input: Optional[str] = None) -> Dict[str, Any]:
+    def run_demo(self) -> Dict[str, Any]:
         """
         Run TribuAI in demo mode with mock data.
         
@@ -95,13 +95,10 @@ class TribuAI:
         """
         logger.info("Starting TribuAI in demo mode")
         
-        if mock_input is None:
-            mock_input = "I love Japanese cinema, brutalist architecture, and old-school hip hop."
-        
-        print(f"\n🧪 Demo Input: {mock_input}")
+        print(f"\n🧪 Demo Input: {user_input}")
         print("-" * 50)
         
-        result = self.process_input(mock_input)
+        result = self.process_input(user_input)
         self._display_results(result)
         
         return result
@@ -122,18 +119,14 @@ class TribuAI:
                 "user_input": user_input,
                 "session_id": f"session_{hash(user_input) % 10000}",
                 "timestamp": datetime.now().isoformat(),
-                "survey_questions": [],
-                "user_responses": [],
                 "combined_input": "",
                 "extracted_entities": {},
-                "qloo_affinities": {},
                 "cultural_profile": {},
                 "recommendations": {},
                 "matching": {},
-                "final_output": "",
-                "error_message": None,
                 "current_node": "",
-                "processing_time": 0.0
+                "processing_time": 0.0,
+                "error_message": None
             }
             
             logger.info(f"Processing input for session {graph_input['session_id']}")
@@ -188,10 +181,6 @@ class TribuAI:
         print("  - Just type your cultural preferences!")
         print("  - 'help' - Show this help")
         print("  - 'quit' or 'exit' - Exit the application")
-        print("\n💡 Examples:")
-        print("  - 'I love indie rock, street art, and coffee shops'")
-        print("  - 'I'm into minimalism, electronic music, and Japanese culture'")
-        print("  - 'I enjoy vintage fashion, jazz, and European cities'")
         print()
 
 

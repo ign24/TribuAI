@@ -9,35 +9,8 @@ import json
 from typing import Dict, Any, List
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.runnables import RunnablePassthrough
-from pydantic import BaseModel, Field
 import os
-
 from loguru import logger
-
-
-class CulturalEntities(BaseModel):
-    """Pydantic model for structured cultural entities."""
-    
-    music: List[str] = Field(
-        description="List of music genres, artists, or musical preferences mentioned"
-    )
-    art: List[str] = Field(
-        description="List of visual arts, films, design styles, or aesthetic preferences"
-    )
-    places: List[str] = Field(
-        description="List of cities, destinations, or travel preferences mentioned"
-    )
-    fashion: List[str] = Field(
-        description="List of clothing styles, brands, or fashion preferences"
-    )
-    values: List[str] = Field(
-        description="List of social values, causes, or beliefs mentioned"
-    )
-    audiences: List[str] = Field(
-        description="List of cultural audiences, communities, or subcultures identified"
-    )
 
 
 def create_parser_chain():
@@ -51,7 +24,7 @@ def create_parser_chain():
     # Initialize LLM
     llm = ChatOpenAI(
         model="gpt-4",
-        temperature=0.1,  # Low temperature for consistent parsing
+        temperature=0.7,  # Higher temperature for more creative extraction
         api_key=os.getenv("OPENAI_API_KEY")
     )
     
@@ -59,59 +32,64 @@ def create_parser_chain():
     prompt = PromptTemplate(
         input_variables=["input_text"],
         template="""
-You are TribuAI's cultural intelligence parser. Your task is to extract structured cultural entities from user responses about their cultural preferences.
+You are TribuAI's cultural intelligence parser. Your task is to extract structured cultural entities and signals from user responses about their cultural preferences.
 
 ## User Input:
 {input_text}
 
 ## Instructions:
-Analyze the user's cultural preferences and extract the following entities:
+Analyze the user's cultural preferences and extract the following for each relevant entity or interest:
 
-1. **Music**: Genres, artists, musical experiences, or audio culture preferences
-2. **Art**: Visual arts, films, design styles, aesthetic movements, or creative preferences  
-3. **Places**: Cities, destinations, travel experiences, or location preferences
-4. **Fashion**: Clothing styles, brands, aesthetic choices, or style preferences
-5. **Values**: Social causes, beliefs, values, or cultural movements they identify with
-6. **Audiences**: Cultural communities, subcultures, or social groups they might belong to
+- name: The canonical name of the entity or interest
+- type: One of Qloo's types (artist, brand, place, destination, book, movie, podcast, tv_show, video_game, tag, audience)
+- tags: List of relevant tags or keywords (genres, styles, attributes, etc.)
+- context: (Optional) Disambiguating details (city, country, year, etc.)
 
-## Guidelines:
-- Extract specific, concrete entities rather than vague descriptions
-- Include both explicit mentions and implied cultural signals
-- Normalize and standardize entity names
-- Focus on cultural relevance and identity markers
-- Limit each category to 3-5 most significant entities
+If you can infer a relevant audience (group of people with shared tastes), include it as an entity of type "audience".
 
 ## Output Format:
-Return a JSON object with the following structure:
+Return a JSON object with this structure:
 {{
-    "music": ["entity1", "entity2", "entity3"],
-    "art": ["entity1", "entity2", "entity3"], 
-    "places": ["entity1", "entity2", "entity3"],
-    "fashion": ["entity1", "entity2", "entity3"],
-    "values": ["entity1", "entity2", "entity3"],
-    "audiences": ["entity1", "entity2", "entity3"]
+  "entities": [
+    {{"name": "...", "type": "...", "tags": ["..."], "context": "..."}},
+    ...
+  ]
 }}
 
-Example:
-If user says "I love Japanese cinema, brutalist architecture, and old-school hip hop", extract:
+## Example:
+If user says "I love Japanese cinema, brutalist architecture, and old-school hip hop, and I feel at home in Berlin":
 {{
-    "music": ["old-school hip hop", "hip hop", "rap"],
-    "art": ["Japanese cinema", "brutalist architecture", "minimalist design"],
-    "places": ["Japan", "urban environments"],
-    "fashion": ["streetwear", "minimalist style"],
-    "values": ["authenticity", "urban culture"],
-    "audiences": ["urban creatives", "hip hop culture", "minimalist enthusiasts"]
+  "entities": [
+    {{"name": "Japanese Cinema", "type": "movie", "tags": ["cinema", "Japan", "film"], "context": ""}},
+    {{"name": "Brutalist Architecture", "type": "tag", "tags": ["architecture", "minimalism"], "context": ""}},
+    {{"name": "Old-school Hip Hop", "type": "artist", "tags": ["hip hop", "music genre"], "context": ""}},
+    {{"name": "Berlin", "type": "place", "tags": ["city", "Europe"], "context": "Germany"}},
+    {{"name": "Indie Music Fans", "type": "audience", "tags": ["music", "indie"], "context": ""}}
+  ]
 }}
 
 Return only the JSON object, no additional text.
 """
     )
     
-    # Create output parser
-    output_parser = JsonOutputParser(pydantic_object=CulturalEntities)
+    # Output parser expects a dict with an 'entities' key
+    def parse_entities(output: str):
+        # If output is an object with .content, extract the string
+        if hasattr(output, 'content'):
+            output = output.content
+        print("LLM RAW OUTPUT (content):", output)
+        logger.info(f"LLM RAW OUTPUT (content): {output}")
+        try:
+            data = json.loads(output)
+            if "entities" in data and isinstance(data["entities"], list):
+                return data
+            else:
+                return {"entities": []}
+        except Exception:
+            return {"entities": []}
     
     # Create the chain
-    chain = prompt | llm | output_parser
+    chain = prompt | llm | parse_entities
     
     return chain
 
@@ -125,7 +103,7 @@ def parse_user_responses(user_input: str, survey_responses: List[str]) -> Dict[s
         survey_responses: List of user responses to survey questions
         
     Returns:
-        Dictionary with extracted cultural entities
+        Dictionary with extracted cultural entities (with 'entities' key)
     """
     try:
         # Combine all user input for parsing
@@ -140,21 +118,23 @@ def parse_user_responses(user_input: str, survey_responses: List[str]) -> Dict[s
             "input_text": combined_input
         })
         
-        logger.info(f"Successfully parsed user responses, extracted {sum(len(v) for v in result.dict().values())} entities")
+        logger.info(f"Successfully parsed user responses, extracted {len(result.get('entities', []))} entities")
         
-        return result.dict()
+        return result
         
     except Exception as e:
         logger.error(f"Error parsing user responses: {e}")
         
         # Fallback to basic extraction
         return {
-            "music": ["indie", "alternative", "electronic"],
-            "art": ["minimalist", "contemporary", "street art"],
-            "places": ["urban", "creative cities", "cultural hubs"],
-            "fashion": ["casual", "sustainable", "streetwear"],
-            "values": ["creativity", "authenticity", "community"],
-            "audiences": ["young professionals", "creative class", "urban millennials"]
+            "entities": [
+                {"name": "indie", "type": "artist", "tags": [], "context": ""},
+                {"name": "minimalist", "type": "art", "tags": [], "context": ""},
+                {"name": "urban", "type": "place", "tags": [], "context": ""},
+                {"name": "casual", "type": "brand", "tags": [], "context": ""},
+                {"name": "creativity", "type": "tag", "tags": [], "context": ""},
+                {"name": "young professionals", "type": "audience", "tags": [], "context": ""}
+            ]
         }
 
 

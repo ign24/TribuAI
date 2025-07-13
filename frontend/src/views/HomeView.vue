@@ -1,196 +1,282 @@
 <template>
   <AppLayout>
-    <div class="flex flex-col md:flex-row max-w-6xl mx-auto px-4 py-8 gap-8">
-      <!-- Chat Section -->
-      <div class="flex-1 min-w-0">
-        <div class="bg-gray-900 rounded-lg shadow-lg p-6 min-h-[400px] flex flex-col">
-          <div class="flex-1 overflow-y-auto mb-4">
-            <div v-for="(msg, idx) in chatHistory" :key="idx" class="mb-3">
-              <div v-if="msg.role === 'user'" class="text-right">
-                <div class="inline-block bg-slate-blue/80 text-white px-4 py-2 rounded-lg">
-                  {{ msg.content }}
+    <div class="container mx-auto h-[calc(100vh-64px)]">
+      <!-- DEBUG BLOCK -->
+      <div class="mb-6 p-4 rounded-lg bg-gray-900/80 border border-tribal-lime/40 text-xs text-tribal-lime">
+        <strong>DEBUG:</strong><br>
+        <div>recommendations: <pre style="white-space: pre-wrap; word-break: break-all;">{{ JSON.stringify(recommendations, null, 2) }}</pre></div>
+        <div>matching: <pre style="white-space: pre-wrap; word-break: break-all;">{{ JSON.stringify(matching, null, 2) }}</pre></div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full p-6">
+        
+        <!-- Chat Section -->
+        <div class="lg:col-span-2 flex flex-col">
+          <div class="card-glass rounded-2xl flex flex-col h-full overflow-hidden">
+            
+            <!-- Chat Header -->
+            <div class="p-6 border-b border-default">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="status-typing" v-if="isLoading">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                  </div>
+                  <span class="text-xs text-gray-400" v-else>Ready to chat</span>
                 </div>
-              </div>
-              <div v-else class="text-left">
-                <div class="inline-block bg-gray-700/80 text-gray-100 px-4 py-2 rounded-lg whitespace-pre-line">
-                  <span v-html="formatAssistantMessage(msg.content)"></span>
+                <div v-if="error" class="text-xs text-red-400">
+                  {{ error }}
                 </div>
               </div>
             </div>
+
+            <!-- Chat Messages -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-4" ref="chatContainer">
+              
+              <div v-for="(message, idx) in conversationHistory" :key="idx" class="flex items-start gap-3">
+                <div :class="message.sender === 'assistant' ? 'w-8 h-8 rounded-full bg-gradient-neon flex items-center justify-center flex-shrink-0 shadow-lg shadow-tribal-lime/50' : 'w-8 h-8 rounded-full bg-gradient-accent flex items-center justify-center flex-shrink-0 shadow-lg shadow-rust-red/50'">
+                  <span class="text-sm font-semibold text-white">{{ message.sender === 'assistant' ? 'AI' : 'You' }}</span>
+                </div>
+                <div :class="message.sender === 'assistant' ? 'chat-bubble chat-bubble-assistant' : 'chat-bubble chat-bubble-user'">
+                  <p>{{ message.message }}</p>
+                </div>
+              </div>
+
+              <!-- Guided Assistant Response -->
+              <div v-if="assistantMessage && !profileComplete" class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-gradient-neon flex items-center justify-center flex-shrink-0 shadow-lg shadow-tribal-lime/50">
+                  <span class="text-sm font-semibold text-white">AI</span>
+                </div>
+                <div class="chat-bubble chat-bubble-assistant">
+                  <p>{{ assistantMessage }}</p>
+                  <div v-if="currentContext" class="mt-3">
+                    <p class="text-sm text-gray-400 mb-2">Building your profile...</p>
+                    <div class="flex flex-wrap gap-2">
+                      <span class="text-xs px-2 py-1 rounded-full bg-tribal-lime/20 text-tribal-lime">
+                        {{ currentContext }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Final Profile and Recommendations (when complete) -->
+              <div v-if="profileComplete && culturalProfile" class="flex items-start gap-3 animate-fade-in">
+                <div class="w-8 h-8 rounded-full bg-gradient-neon flex items-center justify-center flex-shrink-0 shadow-lg shadow-tribal-lime/50">
+                  <span class="text-sm font-semibold text-white">AI</span>
+                </div>
+                <div class="chat-bubble chat-bubble-assistant">
+                  <p class="mb-2 font-semibold text-lg">{{ fullCulturalProfile.identity }}</p>
+                  <p class="mb-4 text-sm text-gray-300">{{ fullCulturalProfile.description }}</p>
+                  <p class="mb-2 font-medium">Music: <span class="font-normal">{{ culturalProfile.music.join(', ') }}</span></p>
+                  <p class="mb-2 font-medium">Art: <span class="font-normal">{{ culturalProfile.art.join(', ') }}</span></p>
+                  <p class="mb-2 font-medium">Fashion: <span class="font-normal">{{ culturalProfile.fashion.join(', ') }}</span></p>
+                  <p class="mb-2 font-medium">Values: <span class="font-normal">{{ culturalProfile.values.join(', ') }}</span></p>
+                  <p class="mb-2 font-medium">Places: <span class="font-normal">{{ culturalProfile.places.join(', ') }}</span></p>
+                  <p class="mb-2 font-medium">Audiences: <span class="font-normal">{{ culturalProfile.audiences.join(', ') }}</span></p>
+                  <p class="mt-4 font-semibold">Here are your personalized recommendations below!</p>
+                </div>
+              </div>
+              
+            </div>
+
+            <!-- Chat Input -->
+            <div class="p-6 border-t border-default">
+              <form @submit.prevent="handleSubmit" class="flex gap-3">
+                <div class="flex-1">
+                  <textarea
+                    v-model="userInput"
+                    :disabled="isLoading"
+                    placeholder="Tell me about your music taste, style, values, interests..."
+                    rows="2"
+                    class="input-field resize-none"
+                    @keydown.enter.prevent="handleSubmit"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  :disabled="!userInput.trim() || isLoading"
+                  class="btn btn-primary px-6 self-end"
+                >
+                  <span v-if="isLoading">
+                    <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  </span>
+                  <span v-else>Send</span>
+                </button>
+              </form>
+              
+              <!-- Quick Examples -->
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span class="text-xs text-gray-400">Try:</span>
+                <button 
+                  v-for="example in examples" 
+                  :key="example"
+                  @click="addExample(example)"
+                  class="chip chip-default text-xs"
+                  :disabled="isLoading"
+                >
+                  {{ example }}
+                </button>
+              </div>
+            </div>
           </div>
-          <form @submit.prevent="sendMessage" class="flex gap-2 mt-auto">
-            <input
-              v-model="userInput"
-              type="text"
-              class="flex-1 rounded-lg px-4 py-2 bg-gray-800 text-white focus:outline-none"
-              :placeholder="currentQuestion?.placeholder || 'Share your thoughts...'"
-              autocomplete="off"
-            />
-            <AppButton type="submit" variant="primary" :disabled="loading || conversation.isLoading.value">
-              {{ conversation.isComplete ? 'See Results' : 'Send' }}
-            </AppButton>
-          </form>
         </div>
-      </div>
-      <!-- Results Section -->
-      <div v-if="api.data.value" class="w-full md:w-[400px] flex flex-col gap-6">
-        <ProfileDisplay :profile="api.data.value.cultural_profile" />
-        <BrandRecommendations :brands="api.data.value.recommendations.brands" />
-        <GeographicAffinities :places="api.data.value.recommendations.places" />
-        <CulturalCompatibility :matching="api.data.value.matching" />
+
+        <!-- Results Panel -->
+        <div class="flex flex-col gap-6">
+          
+          <!-- Instructions Card -->
+          <InstructionsCard v-if="!hasRecommendations" />
+
+          <!-- Profile Display -->
+          <ProfileDisplay 
+            v-if="profileComplete && fullCulturalProfile"
+            :profile="fullCulturalProfile"
+            class="animate-fade-in"
+          />
+
+          <!-- Unified Recommendations Card -->
+          <UnifiedRecommendationsCard
+            v-if="profileComplete && recommendations"
+            :recommendations="(recommendations as unknown as Record<string, any[]>)"
+          />
+
+          <!-- Answers Summary -->
+          <AnswersSummary 
+            v-if="userInput"
+            :user-input="userInput"
+            :cultural-profile="fullCulturalProfile"
+          />
+
+          <!-- Cultural Compatibility -->
+          <CulturalCompatibility 
+            v-if="profileComplete && matching"
+            :matching="{...matching, shared_interests: [...matching.shared_interests]}"
+            class="animate-fade-in"
+            style="animation-delay: 0.4s"
+          />
+
+          <!-- Action Button -->
+          <div v-if="hasRecommendations" class="animate-fade-in" style="animation-delay: 0.6s">
+            <button
+              @click="resetConversation"
+              class="btn btn-accent w-full"
+            >
+              <AppIcon name="refresh" :size="16" />
+              Start New Conversation
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, watchEffect, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, nextTick, computed } from 'vue';
 import AppLayout from '@/components/layout/AppLayout.vue';
-import AppButton from '@/components/ui/AppButton.vue';
+import AppIcon from '@/components/ui/AppIcon.vue';
 import ProfileDisplay from '@/components/sections/ProfileDisplay.vue';
-import BrandRecommendations from '@/components/sections/BrandRecommendations.vue';
-import GeographicAffinities from '@/components/sections/GeographicAffinities.vue';
+import UnifiedRecommendationsCard from '@/components/sections/UnifiedRecommendationsCard.vue';
+import AnswersSummary from '@/components/sections/AnswersSummary.vue';
 import CulturalCompatibility from '@/components/sections/CulturalCompatibility.vue';
-import { useApi } from '@/composables/useApi';
+import InstructionsCard from '@/components/sections/InstructionsCard.vue';
 import { useConversation } from '@/composables/useConversation';
 
-const router = useRouter();
-const api = useApi();
 const conversation = useConversation();
+const {
+  isLoading,
+  error,
+  conversationHistory,
+  currentContext,
+  profileComplete,
+  assistantMessage,
+  culturalProfile,
+  recommendations,
+  matching,
+  recommendationContext,
+  hasRecommendations,
+  processInput,
+  resetConversation,
+  fullCulturalProfile,
+  userInput
+} = conversation;
+const chatContainer = ref<HTMLElement>();
 
-const onboardingMessage = {
-  role: 'assistant' as const,
-  content: `👋 <b>Hi! I'm TribuAI, your cultural intelligence guide.</b><br><br>
-I'll help you discover your unique cultural identity and recommend brands, places, and experiences that truly fit you.<br><br>
-<b>How it works:</b><br>
-<ul style='margin-left:1em;'>
-  <li>I'll ask you a few questions about your tastes and preferences.</li>
-  <li>Just answer naturally - there are no wrong answers!</li>
-  <li>When we're done, I'll show you your personalized cultural profile and recommendations.</li>
-</ul>
-Ready? <b>Let's start!</b>`
-};
+const examples = [
+  'Indie Rock',
+  'Minimalism', 
+  'Street Art',
+  'Sustainability',
+  'Urban Culture',
+  'Vintage Style'
+];
 
-const initialHistory = (() => {
-  const stored = sessionStorage.getItem('tribuai_chat_history');
-  if (stored) {
-    const parsed = JSON.parse(stored);
-    if (Array.isArray(parsed) && parsed.length === 0) {
-      return [onboardingMessage];
-    }
-    return parsed;
-  }
-  return [onboardingMessage];
-})();
-
-const chatHistory = ref<{ role: 'user' | 'assistant'; content: string }[]>(initialHistory);
-const userInput = ref('');
-const loading = ref(false);
-const hasRequestedProfile = ref(false); // Flag to prevent multiple requests
-
-// Get current question from conversation system
-const currentQuestion = computed(() => conversation.currentQuestion.value);
-
-watch(chatHistory, (val) => {
-  sessionStorage.setItem('tribuai_chat_history', JSON.stringify(val));
-}, { deep: true });
-
-// Add first question when component mounts
-onMounted(() => {
-  if (chatHistory.value.length === 1) {
-    // Only add first question if we just have the onboarding message
-    const firstQuestion = conversation.getNextMessage();
-    chatHistory.value.push(firstQuestion);
-  }
-});
-
-// Watch for conversation completion - only send request once
-watchEffect(() => {
-  if (conversation.isComplete.value && !loading.value && !hasRequestedProfile.value) {
-    // Send complete profile to backend only once
-    sendCompleteProfile();
-    hasRequestedProfile.value = true; // Mark as requested
-  }
-});
-
-function formatAssistantMessage(msg: string) {
-  // If the message already contains HTML, return as is
-  if (msg.includes('<ul') || msg.includes('<b>') || msg.includes('<br>')) return msg;
-  // Simple formatting for other assistant messages
-  return msg.replace(/\n/g, '<br>');
-}
-
-const sendMessage = async () => {
+const handleSubmit = async () => {
   if (!userInput.value.trim()) return;
-  
-  const userMessage = { role: 'user' as const, content: userInput.value };
-  chatHistory.value.push(userMessage);
-  
-  const userInputText = userInput.value;
-  userInput.value = '';
-  loading.value = true;
-  
   try {
-    // Process response through conversation system
-    conversation.processResponse(userInputText);
-    
-    // Get next message from conversation system
-    const nextMessage = conversation.getNextMessage();
-    chatHistory.value.push(nextMessage);
-    
-    // If conversation is complete, the watchEffect will handle sending to backend
-    // No need to call sendCompleteProfile here as it's handled by the watcher
-  } catch (e) {
-    chatHistory.value.push({ 
-      role: 'assistant', 
-      content: 'An error occurred. Please try again.' 
-    });
-  } finally {
-    loading.value = false;
+    await processInput(userInput.value.trim());
+    userInput.value = '';
+    await nextTick();
+    if (chatContainer.value) {
+      chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
+    }
+  } catch (err) {
+    console.error('Error processing input:', err);
   }
 };
 
-const sendCompleteProfile = async () => {
-  if (loading.value) return;
-  
-  loading.value = true;
-  try {
-    // Convert conversation entities to the format expected by backend
-    const culturalProfile = {
-      music: conversation.entities.value.music || [],
-      art: conversation.entities.value.art || [],
-      fashion: conversation.entities.value.fashion || [],
-      values: conversation.entities.value.values || [],
-      places: conversation.entities.value.places || [],
-      audiences: conversation.entities.value.audiences || []
-    };
-    // Send to backend for processing and recommendations
-    await api.processCulturalProfile(culturalProfile);
-    // Do NOT redirect to /results; show results in side panel
-  } catch (e) {
-    chatHistory.value.push({ 
-      role: 'assistant', 
-      content: 'An error occurred while processing your profile. Please try again.' 
-    });
-  } finally {
-    loading.value = false;
+const addExample = (example: string) => {
+  if (!userInput.value.includes(example)) {
+    userInput.value += (userInput.value ? ', ' : '') + example;
   }
 };
 
-const canShowResults = computed(() => {
-  return conversation.hasEnoughInfo.value;
-});
-
-const goToResults = () => {
-  router.push('/results');
+const getRecommendationTitle = (context: string) => {
+  switch (context) {
+    case 'early':
+      return 'Discover Your Style';
+    case 'mid':
+      return 'Building Your Profile';
+    case 'complete':
+      return 'Your Perfect Matches';
+    default:
+      return 'Recommendations';
+  }
 };
 
-// Function to reset the conversation (for new chat)
-const resetConversation = () => {
-  hasRequestedProfile.value = false;
-  conversation.resetConversation();
-  chatHistory.value = [onboardingMessage];
-  sessionStorage.removeItem('tribuai_chat_history');
+const getRecommendationDescription = (context: string) => {
+  switch (context) {
+    case 'early':
+      return 'Here are some popular brands and places to get you started on your cultural journey.';
+    case 'mid':
+      return 'Based on what you\'ve shared, here are some recommendations that might interest you.';
+    case 'complete':
+      return 'Here are your personalized recommendations based on your complete cultural profile.';
+    default:
+      return 'Discover brands and places that match your cultural preferences.';
+  }
+};
+
+const getContextLabel = (context: string) => {
+  switch (context) {
+    case 'early':
+      return 'Early Discovery';
+    case 'mid':
+      return 'Building Profile';
+    case 'complete':
+      return 'Complete Profile';
+    default:
+      return 'Recommendations';
+  }
 };
 </script>
+
+<style scoped>
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

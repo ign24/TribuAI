@@ -5,7 +5,15 @@ export interface CulturalProfile {
   style: string[];
 }
 
-export interface EnrichedEntity {
+export interface BrandRecommendation {
+  name: string;
+  entity_id: string;
+  description: string;
+  image: string;
+  tags: string[];
+}
+
+export interface PlaceRecommendation {
   name: string;
   entity_id: string;
   description: string;
@@ -14,8 +22,7 @@ export interface EnrichedEntity {
 }
 
 export interface Recommendations {
-  brands: (EnrichedEntity | string)[];
-  places: (EnrichedEntity | string)[];
+  [key: string]: BrandRecommendation[] | PlaceRecommendation[] | any[];
 }
 
 export interface Matching {
@@ -27,7 +34,7 @@ export interface Matching {
 export interface ApiResponse {
   cultural_profile: CulturalProfile;
   recommendations: Recommendations;
-  matching: Matching;
+  matching?: Matching;
 }
 
 export interface StatusResponse {
@@ -40,4 +47,13 @@ export interface HealthResponse {
 
 export interface ProcessRequest {
   user_input: string;
+}
+
+export interface CulturalProfileRequest {
+  music: string[];
+  art: string[];
+  fashion: string[];
+  values: string[];
+  places: string[];
+  audiences: string[];
 }

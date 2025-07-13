@@ -1,16 +1,16 @@
 <template>
-  <div class="min-h-screen bg-obsidian text-soft-white">
-    <!-- Background Effects -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-rust-red/10 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-slate-blue/10 rounded-full blur-3xl"></div>
-      <div class="absolute top-3/4 left-1/2 w-80 h-80 bg-tribal-lime/5 rounded-full blur-3xl"></div>
-    </div>
+  <div class="min-h-screen bg-obsidian">
+    <!-- Animated Background -->
+    <vue-particles
+      id="tsparticles"
+      :options="particlesOptions"
+      class="fixed inset-0 z-0"
+    />
     
-    <!-- Content -->
-    <div class="relative z-10">
+    <!-- Main Content -->
+    <div class="relative z-10 min-h-screen">
       <AppHeader v-if="showHeader" />
-      <main class="pb-8">
+      <main class="flex-1">
         <slot />
       </main>
     </div>
@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import AppHeader from './AppHeader.vue';
 
 interface Props {
@@ -27,4 +28,87 @@ interface Props {
 withDefaults(defineProps<Props>(), {
   showHeader: true
 });
+
+const particlesOptions = computed(() => ({
+  fpsLimit: 120,
+  interactivity: {
+    events: {
+      onClick: {
+        enable: false,
+        mode: "push",
+      },
+      onHover: {
+        enable: true,
+        mode: "grab",
+      },
+      resize: {
+        enable: true,
+        delay: 0.5
+      },
+    },
+    modes: {
+      push: {
+        quantity: 4,
+      },
+      grab: {
+        distance: 100,
+        links: {
+          opacity: 0.1
+        }
+      },
+    },
+  },
+  particles: {
+    color: {
+      value: ["#00F5FF", "#8338EC", "#FF006E"],
+    },
+    links: {
+      color: "#00F5FF",
+      distance: 150,
+      enable: true,
+      opacity: 0.15,
+      width: 1,
+    },
+    move: {
+      enable: true,
+      speed: 0.5,
+      direction: "none",
+      random: false,
+      straight: false,
+      outModes: {
+        default: "bounce",
+      },
+    },
+    number: {
+      density: {
+        enable: true,
+        value_area: 800,
+      },
+      value: 60,
+    },
+    opacity: {
+      value: 0.15,
+      animation: {
+        enable: true,
+        speed: 0.5,
+        opacity_min: 0.05,
+        sync: false,
+      },
+    },
+    shape: {
+      type: "circle",
+    },
+    size: {
+      value: 2,
+      random: true,
+      animation: {
+        enable: true,
+        speed: 1,
+        size_min: 0.1,
+        sync: false,
+      },
+    },
+  },
+  detectRetina: true,
+}));
 </script>

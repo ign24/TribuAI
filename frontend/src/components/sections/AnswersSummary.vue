@@ -19,7 +19,7 @@
               <h4 class="text-sm font-medium text-gray-400 mb-3">Key Themes</h4>
               <div class="flex flex-wrap gap-2">
                 <AppChip
-                  v-for="theme in themes"
+                  v-for="theme in keyThemes"
                   :key="theme"
                   variant="accent"
                   size="sm"
@@ -34,15 +34,15 @@
               <div class="space-y-2">
                 <div class="flex items-center gap-2 text-sm text-gray-300">
                   <div class="w-2 h-2 bg-tribal-lime rounded-full"></div>
-                  <span>Creative Expression</span>
+                  <span>{{ culturalMarkers.creative }}</span>
                 </div>
                 <div class="flex items-center gap-2 text-sm text-gray-300">
                   <div class="w-2 h-2 bg-rust-red rounded-full"></div>
-                  <span>Authentic Values</span>
+                  <span>{{ culturalMarkers.values }}</span>
                 </div>
                 <div class="flex items-center gap-2 text-sm text-gray-300">
                   <div class="w-2 h-2 bg-slate-blue rounded-full"></div>
-                  <span>Contemporary Aesthetics</span>
+                  <span>{{ culturalMarkers.aesthetics }}</span>
                 </div>
               </div>
             </div>
@@ -61,6 +61,7 @@ import AppChip from '@/components/ui/AppChip.vue';
 
 interface Props {
   userInput: string;
+  culturalProfile?: any;
   delay?: number;
 }
 
@@ -70,17 +71,51 @@ const props = withDefaults(defineProps<Props>(), {
 
 const isVisible = ref(false);
 
-// Extract themes from user input
-const themes = computed(() => {
-  const input = props.userInput.toLowerCase();
-  const possibleThemes = [
-    'music', 'art', 'fashion', 'design', 'sustainability', 
-    'creativity', 'minimalism', 'urban', 'authentic', 'modern'
-  ];
+// Extract key themes from cultural profile
+const keyThemes = computed(() => {
+  if (!props.culturalProfile) {
+    // Fallback to input analysis
+    const input = props.userInput.toLowerCase();
+    const possibleThemes = [
+      'music', 'art', 'fashion', 'design', 'sustainability', 
+      'creativity', 'minimalism', 'urban', 'authentic', 'modern'
+    ];
+    
+    return possibleThemes.filter(theme => 
+      input.includes(theme) || input.includes(theme.slice(0, -1))
+    ).slice(0, 6);
+  }
   
-  return possibleThemes.filter(theme => 
-    input.includes(theme) || input.includes(theme.slice(0, -1))
-  ).slice(0, 6);
+  // Use real data from cultural profile
+  const themes = [];
+  if (props.culturalProfile.music) {
+    themes.push(...props.culturalProfile.music.slice(0, 2));
+  }
+  if (props.culturalProfile.style) {
+    themes.push(...props.culturalProfile.style.slice(0, 2));
+  }
+  if (props.culturalProfile.values) {
+    themes.push(...props.culturalProfile.values.slice(0, 2));
+  }
+  
+  return themes.slice(0, 6);
+});
+
+// Cultural markers based on profile
+const culturalMarkers = computed(() => {
+  if (!props.culturalProfile) {
+    return {
+      creative: 'Creative Expression',
+      values: 'Authentic Values', 
+      aesthetics: 'Contemporary Aesthetics'
+    };
+  }
+  
+  return {
+    creative: props.culturalProfile.identity?.includes('Creative') ? 'Creative Expression' : 'Artistic Sensibility',
+    values: props.culturalProfile.values?.[0] || 'Authentic Values',
+    aesthetics: props.culturalProfile.style?.[0] || 'Contemporary Aesthetics'
+  };
 });
 
 onMounted(() => {

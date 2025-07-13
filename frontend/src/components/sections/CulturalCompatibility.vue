@@ -1,91 +1,80 @@
 <template>
-  <AppCard class="mb-6" :class="{ 'animate-fade-in': isVisible }">
-    <div class="flex items-start gap-4">
-      <div class="flex-shrink-0 p-3 bg-tribal-lime/20 rounded-lg">
-        <AppIcon name="match" :size="24" color="#B9FBC0" />
+  <div class="card-glass rounded-2xl p-6">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-10 h-10 rounded-lg bg-gradient-neon flex items-center justify-center shadow-md shadow-tribal-lime/20">
+        <AppIcon name="match" :size="16" color="white" />
       </div>
-      <div class="flex-1">
-        <h3 class="text-xl font-semibold text-soft-white mb-4">
-          Cultural Compatibility
-        </h3>
-        <div class="p-4 bg-gradient-to-r from-tribal-lime/10 to-slate-blue/10 rounded-lg border border-tribal-lime/30">
-          <div class="flex items-center justify-between mb-3">
-            <div>
-              <p class="text-lg font-semibold text-soft-white">
-                Audience cluster: <span class="text-tribal-lime">{{ matching.audience_cluster }}</span>
-              </p>
-              <div v-if="matching.shared_interests && matching.shared_interests.length" class="text-xs text-gray-400 mt-1">
-                Shared interests: {{ matching.shared_interests.join(', ') }}
-              </div>
-            </div>
-            <div class="text-right">
-              <div class="text-3xl font-bold text-tribal-lime mb-1">
-                {{ matching.affinity_percentage }}%
-              </div>
-              <div class="text-xs text-gray-400">affinity</div>
-            </div>
-          </div>
-          <!-- Progress Bar -->
-          <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-            <div
-              class="bg-gradient-to-r from-tribal-lime to-slate-blue h-2 rounded-full transition-all duration-1000 ease-out"
-              :style="{ width: animateProgress ? `${matching.affinity_percentage}%` : '0%' }"
-            ></div>
-          </div>
-          <p class="text-xs text-gray-400 text-center">
-            High affinity suggests shared values and aesthetic preferences
-          </p>
-        </div>
+      <div>
+        <h3 class="text-base font-bold text-soft-white">Cultural Match</h3>
+        <p class="text-xs text-gray-400">Your tribe compatibility</p>
       </div>
     </div>
-  </AppCard>
+    
+    <div class="p-4 rounded-xl bg-gradient-to-r from-tribal-lime/10 to-slate-blue/10 border border-tribal-lime/30">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+          <p class="font-semibold text-soft-white text-sm">
+            Cluster: <span class="text-tribal-lime">{{ matching.audience_cluster }}</span>
+              </p>
+          <p class="text-xs text-gray-400">Cultural alignment</p>
+            </div>
+            <div class="text-right">
+          <div class="text-2xl font-bold text-tribal-lime">
+            {{ matching.affinity_percentage }}%
+              </div>
+          <div class="text-xs text-gray-400">affinity</div>
+            </div>
+          </div>
+          
+          <!-- Progress Bar -->
+      <div class="w-full bg-gray-700/50 rounded-full h-2 mb-3">
+            <div
+              class="bg-gradient-to-r from-tribal-lime to-slate-blue h-2 rounded-full transition-all duration-1000 ease-out"
+              :style="{ width: progressWidth }"
+            ></div>
+          </div>
+          
+      <!-- Shared Interests -->
+      <div v-if="matching.shared_interests && matching.shared_interests.length > 0" class="mb-3">
+        <p class="text-xs text-gray-400 mb-2">Shared interests:</p>
+        <div class="flex flex-wrap gap-1">
+          <span 
+            v-for="interest in matching.shared_interests.slice(0, 4)" 
+            :key="interest"
+            class="text-xs px-2 py-1 rounded-full bg-tribal-lime/20 text-tribal-lime"
+          >
+            {{ interest }}
+          </span>
+        </div>
+      </div>
+      
+      <p class="text-xs text-gray-400 text-center">
+        High affinity suggests shared cultural values
+      </p>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import type { Matching } from '@/types';
 
 interface Props {
   matching: Matching;
-  delay?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  delay: 600
-});
+const props = defineProps<Props>();
 
-const isVisible = ref(false);
 const animateProgress = ref(false);
 
-// Eliminado: progressWidth, ya no se usa match_percentage
+const progressWidth = computed(() => 
+  animateProgress.value ? `${props.matching.affinity_percentage}%` : '0%'
+);
 
 onMounted(() => {
-  setTimeout(() => {
-    isVisible.value = true;
     setTimeout(() => {
       animateProgress.value = true;
     }, 300);
-  }, props.delay);
 });
-
-// Eliminar isObject y lógica de nombres/edad/location
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

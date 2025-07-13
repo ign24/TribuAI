@@ -105,16 +105,16 @@ class TribuAI:
     
     def process_input(self, user_input: str) -> Dict[str, Any]:
         """
-        Process user input through the LangGraph pipeline.
+        Process user input through the LangGraph pipeline with dynamic recommendations.
         
         Args:
             user_input: User's cultural preferences description
             
         Returns:
-            Dictionary containing the processed results
+            Dictionary containing the processed results with dynamic recommendations
         """
         try:
-            # Prepare input for the graph with proper state structure
+            # Prepare input for the graph with proper state structure including conversation context
             graph_input = {
                 "user_input": user_input,
                 "session_id": f"session_{hash(user_input) % 10000}",
@@ -124,9 +124,14 @@ class TribuAI:
                 "cultural_profile": {},
                 "recommendations": {},
                 "matching": {},
+                "conversation_history": [],
+                "current_context": "",
+                "recommendation_context": "",
                 "current_node": "",
                 "processing_time": 0.0,
-                "error_message": None
+                "error_message": None,
+                "profile_complete": False,
+                "assistant_message": None
             }
             
             logger.info(f"Processing input for session {graph_input['session_id']}")
@@ -135,6 +140,15 @@ class TribuAI:
             result = self.graph.invoke(graph_input)
             
             logger.info(f"Successfully processed input, completed {result.get('current_node', 'unknown')} node")
+            
+            # Add assistant message if present
+            if "assistant_message" in result:
+                logger.info(f"Assistant message: {result['assistant_message']}")
+            
+            # Add profile completion status
+            if "profile_complete" in result:
+                logger.info(f"Profile complete: {result['profile_complete']}")
+            
             return result
             
         except Exception as e:
@@ -143,7 +157,7 @@ class TribuAI:
     
     def _display_results(self, result: Dict[str, Any]) -> None:
         """
-        Display the results in a formatted way.
+        Display the results in a formatted way with dynamic recommendations context.
         
         Args:
             result: The result dictionary from the graph
@@ -152,26 +166,57 @@ class TribuAI:
         print("🎯 Your Cultural Profile Results")
         print("="*50)
         
-        # Display profile information
-        if "profile" in result:
-            profile = result["profile"]
-            print(f"👤 Cultural Identity: {profile.get('identity', 'N/A')}")
-            print(f"🎵 Music Affinities: {', '.join(profile.get('music', []))}")
-            print(f"🎨 Style Preferences: {', '.join(profile.get('style', []))}")
-            print(f"🌍 Destinations: {', '.join(profile.get('destinations', []))}")
+        # Display assistant message if present
+        if "assistant_message" in result:
+            print(f"🤖 Assistant: {result['assistant_message']}")
+            print()
         
-        # Display recommendations
+        # Display profile information
+        if "cultural_profile" in result:
+            profile = result["cultural_profile"]
+            print(f"👤 Cultural Identity: {profile.get('identity', 'N/A')}")
+            print(f"📝 Description: {profile.get('description', 'N/A')}")
+            
+            # Display entities by category
+            for category, values in profile.items():
+                if category not in ['identity', 'description'] and values:
+                    category_name = category.replace('_', ' ').title()
+                    print(f"🎵 {category_name}: {', '.join(values[:3])}")
+        
+        # Display recommendations with context
         if "recommendations" in result:
             recs = result["recommendations"]
-            print(f"\n💡 Brand Recommendations: {', '.join(recs.get('brands', []))}")
-            print(f"🏙️ Places to Explore: {', '.join(recs.get('places', []))}")
-            print(f"👥 Your Tribe: {', '.join(recs.get('audiences', []))}")
+            
+            if "brands" in recs and recs["brands"]:
+                print(f"\n💡 Brand Recommendations:")
+                for brand in recs["brands"][:3]:
+                    name = brand.get("name", "Unknown")
+                    desc = brand.get("description", "")
+                    print(f"   • {name}: {desc[:50]}{'...' if len(desc) > 50 else ''}")
+            
+            if "places" in recs and recs["places"]:
+                print(f"\n🏙️ Places to Explore:")
+                for place in recs["places"][:3]:
+                    name = place.get("name", "Unknown")
+                    desc = place.get("description", "")
+                    print(f"   • {name}: {desc[:50]}{'...' if len(desc) > 50 else ''}")
         
         # Display matching if available
-        if "matching" in result:
+        if "matching" in result and result["matching"]:
             match = result["matching"]
-            if match.get("suggested_match"):
-                print(f"\n🤝 Suggested Match: {match['suggested_match']}")
+            if match.get("affinity_percentage"):
+                print(f"\n🤝 Cultural Affinity: {match['affinity_percentage']}%")
+            if match.get("shared_interests"):
+                print(f"   Shared interests: {', '.join(match['shared_interests'][:3])}")
+        
+        # Display conversation context
+        if "current_context" in result and result["current_context"]:
+            print(f"\n💭 Conversation Context: {result['current_context']}")
+        
+        # Display profile completion status
+        if "profile_complete" in result:
+            status = "✅ Complete" if result["profile_complete"] else "🔄 In Progress"
+            print(f"\n📊 Profile Status: {status}")
         
         print("\n" + "="*50)
     

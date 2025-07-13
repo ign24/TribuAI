@@ -1,87 +1,56 @@
 <template>
-  <AppCard class="mb-6" :class="{ 'animate-fade-in': isVisible }">
+  <div class="card-glass rounded-2xl p-6">
     <div class="flex items-start gap-4">
-      <div class="flex-shrink-0 p-3 bg-tribal-lime/20 rounded-lg">
-        <AppIcon name="profile" :size="24" color="#B9FBC0" />
+      <div class="w-12 h-12 rounded-xl bg-gradient-neon flex items-center justify-center flex-shrink-0 shadow-md shadow-tribal-lime/20">
+        <AppIcon name="profile" :size="20" color="white" />
       </div>
-      <div class="flex-1">
-        <h3 class="text-xl font-semibold text-soft-white mb-2">
-          Cultural Profile: {{ profile.identity }}
+      <div class="flex-1 min-w-0">
+        <h3 class="text-lg font-bold text-soft-white mb-2">
+          {{ profile.identity }}
         </h3>
-        <p class="text-gray-300 leading-relaxed mb-4">
+        <p class="text-sm text-gray-300 leading-relaxed mb-4">
           {{ profile.description }}
         </p>
-        <div class="space-y-3">
+        
+        <div class="space-y-4">
           <div>
-            <h4 class="text-sm font-medium text-gray-400 mb-2">Music Preferences</h4>
+            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Music Preferences</h4>
             <div class="flex flex-wrap gap-2">
-              <AppChip
+              <span
                 v-for="genre in profile.music"
                 :key="genre"
-                variant="accent"
-                size="sm"
+                class="chip chip-success"
               >
                 {{ genre }}
-              </AppChip>
+              </span>
             </div>
           </div>
+          
           <div>
-            <h4 class="text-sm font-medium text-gray-400 mb-2">Style Elements</h4>
+            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Style Elements</h4>
             <div class="flex flex-wrap gap-2">
-              <AppChip
+              <span
                 v-for="style in profile.style"
                 :key="style"
-                variant="secondary"
-                size="sm"
+                class="chip chip-primary"
               >
                 {{ style }}
-              </AppChip>
+              </span>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </AppCard>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import AppCard from '@/components/ui/AppCard.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
-import AppChip from '@/components/ui/AppChip.vue';
 import type { CulturalProfile } from '@/types';
 
 interface Props {
   profile: CulturalProfile;
-  delay?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  delay: 0
-});
-
-const isVisible = ref(false);
-
-onMounted(() => {
-  setTimeout(() => {
-    isVisible.value = true;
-  }, props.delay);
-});
+defineProps<Props>();
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

@@ -20,20 +20,15 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const cardClasses = computed(() => [
-  'rounded-xl transition-all duration-200',
+  'rounded-2xl transition-all duration-200',
   {
-    // Variants
-    'bg-warm-gray border border-gray-700': props.variant === 'default',
-    'bg-warm-gray/80 backdrop-blur-md border border-gray-700/50 shadow-lg': props.variant === 'glass',
-    'bg-warm-gray shadow-2xl shadow-black/40 border border-gray-600': props.variant === 'elevated',
-    
-    // Padding
-    'p-3': props.padding === 'sm',
+    'bg-card border border-default': props.variant === 'default',
+    'card-glass': props.variant === 'glass',
+    'card-elevated': props.variant === 'elevated',
+    'p-4': props.padding === 'sm',
     'p-6': props.padding === 'md',
     'p-8': props.padding === 'lg',
-    
-    // Hover effects
-    'hover:shadow-xl hover:shadow-black/30 hover:transform hover:scale-[1.02]': props.hover
+    'card-interactive': props.hover
   }
 ]);
 </script>

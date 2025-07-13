@@ -103,7 +103,7 @@ class QlooClient:
         except httpx.HTTPStatusError as e:
             logger.error(f"Qloo API HTTP error: {e.response.status_code} - {e.response.text}")
             raise
-        
+            
         except httpx.RequestError as e:
             logger.error(f"Qloo API request error: {e}")
             raise
@@ -174,114 +174,249 @@ class QlooClient:
                 "brands": brands,
                 "places": places
             }
-            
+                
         except Exception as e:
             logger.error(f"Error getting real recommendations: {e}")
             raise
     
-    def _filter_and_deduplicate(self, items: List[Dict[str, Any]], exclude_names=None, min_fields=None, limit=3) -> List[Dict[str, Any]]:
+    def get_basic_recommendations(self, context: str = "general") -> Dict[str, Any]:
         """
-        Filtra y prioriza resultados útiles para el usuario.
-        - Quita duplicados por entity_id
-        - Excluye nombres genéricos
-        - Prioriza los que tienen descripción o imagen
-        - Limita a N resultados
+        Get basic recommendations for early conversation to encourage engagement.
+        Uses general, popular terms to get engaging results.
+        
+        Args:
+            context: Current conversation context
+            
+        Returns:
+            Dictionary with basic brands and places recommendations
+        """
+        try:
+            logger.info(f"Getting basic recommendations for context: {context}")
+            
+            # Use general, engaging terms for early conversation
+            basic_terms = ["fashion", "music", "art", "travel", "lifestyle"]
+            
+            # Get basic brand recommendations
+            brands = []
+            for term in basic_terms[:2]:  # Use first 2 terms
+                results = self.search_entities(term, limit=3)
+                brands.extend(results)
+            
+            # Get basic place recommendations
+            places = []
+            for term in ["travel", "culture", "city"]:
+                results = self.search_entities(term, limit=2)
+                places.extend(results)
+            
+            # Filter and deduplicate
+            brands = self._filter_and_deduplicate(brands, limit=3)
+            places = self._filter_and_deduplicate(places, limit=3)
+            
+            return {
+                "brands": brands,
+                "places": places
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting basic recommendations: {e}")
+            return {"brands": [], "places": []}
+    
+    def get_contextual_recommendations(self, entities: Dict[str, Any], context: str) -> Dict[str, Any]:
+        """
+        Get contextual recommendations based on what we know about the user.
+        Uses accumulated entities to provide more specific recommendations.
+        
+        Args:
+            entities: Current extracted entities
+            context: Current conversation context
+            
+        Returns:
+            Dictionary with contextual brands and places recommendations
+        """
+        try:
+            logger.info(f"Getting contextual recommendations for entities: {entities}")
+            
+            # Extract specific entities for more targeted recommendations
+            all_entities = []
+            for category, values in entities.items():
+                if isinstance(values, list) and values:
+                    all_entities.extend(values[:2])  # Take first 2 from each category
+            
+            if not all_entities:
+                # Fallback to basic recommendations
+                return self.get_basic_recommendations(context)
+            
+            # Get contextual brand recommendations
+            brands = self._get_brand_recommendations(all_entities)
+            
+            # Get contextual place recommendations
+            places = self._get_place_recommendations(all_entities)
+            
+            return {
+                "brands": brands,
+                "places": places
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting contextual recommendations: {e}")
+            return {"brands": [], "places": []}
+    
+    def get_comprehensive_recommendations(self, profile_narrative: str) -> Dict[str, Any]:
+        """
+        Get comprehensive recommendations for complete profiles using a combined profile narrative string.
+        Uses the narrative as the query for the most contextual recommendations.
+        
+        Args:
+            profile_narrative: Combined profile narrative string
+            
+        Returns:
+            Dictionary with comprehensive brands and places recommendations
+        """
+        try:
+            logger.info(f"Getting comprehensive recommendations for complete profile (narrative)")
+            if not profile_narrative or not profile_narrative.strip():
+                logger.warning("No profile narrative provided for comprehensive recommendations")
+                return {"brands": [], "places": []}
+            # Use the narrative as the query for both brands and places
+            brands = self._get_brand_recommendations([profile_narrative])
+            places = self._get_place_recommendations([profile_narrative])
+            return {
+                "brands": brands,
+                "places": places
+            }
+        except Exception as e:
+            logger.error(f"Error getting comprehensive recommendations: {e}")
+            return {"brands": [], "places": []}
+    
+    def _filter_and_deduplicate(self, items: List[Dict[str, Any]], exclude_names=None, min_fields=None, limit=5) -> List[Dict[str, Any]]:
+        """
+        Filter and prioritize useful results for the user.
+        - Remove duplicates by entity_id
+        - Exclude generic names
+        - Prioritize items with description or image
+        - Limit to N results
         """
         if exclude_names is None:
             exclude_names = {"brand", "place"}
         if min_fields is None:
-            min_fields = ["description", "image"]
+            min_fields = []  # Remove minimum field requirement
+        
         seen = set()
         filtered = []
-        # Prioriza los que tienen descripción o imagen
-        items = sorted(items, key=lambda x: (bool(x.get("description")) or bool(x.get("image")), x.get("name", "")), reverse=True)
-        for item in items:
-            name = item.get("name", "").strip().lower()
-            if name in exclude_names:
-                continue
-            eid = item.get("entity_id")
-            if eid and eid in seen:
-                continue
-            if not any(item.get(f) for f in min_fields):
-                continue
-            seen.add(eid)
-            filtered.append(item)
+        
+        # Sort by quality: items with both image and description first, then by popularity
+        def quality_score(item):
+            score = 0
+            if item.get("image"):
+                score += 2
+            if item.get("description"):
+                score += 1
+            if item.get("properties", {}).get("description"):
+                score += 1
+            # Add popularity score if available
+            score += item.get("popularity", 0) * 10
+            return score
+        
+        # Sort by quality score
+        sorted_items = sorted(items, key=quality_score, reverse=True)
+        
+        for item in sorted_items:
             if len(filtered) >= limit:
                 break
-        return filtered
+                
+            # Skip if we've seen this entity_id
+            entity_id = item.get("entity_id")
+            if entity_id in seen:
+                continue
+            seen.add(entity_id)
+            
+            # Skip generic names
+            name = item.get("name", "").lower()
+            if any(exclude in name for exclude in exclude_names):
+                continue
+            
+            # Add item if it has any useful information
+            if (item.get("name") and 
+                (item.get("description") or 
+                 item.get("image") or 
+                 item.get("properties", {}).get("description"))):
+                filtered.append(item)
+        
+        return filtered[:limit]
 
     def _get_brand_recommendations(self, entities: List[str]) -> List[Dict[str, Any]]:
         """
         Get real brand recommendations based on entities.
-        If no results with type 'brand' are found, return the first results from the search.
+        Uses improved search terms and better filtering.
         """
         brands = []
         for entity in entities[:3]:  # Use first 3 entities
             try:
-                search_results = self.search_entities(f"{entity} brand", limit=5)
-                # First, try to get results with type 'brand'
-                filtered = [
-                    {
-                        'name': r.get('name', ''),
-                        'entity_id': r.get('entity_id', ''),
-                        'description': r.get('description', ''),
-                        'image': r.get('image', {}).get('url', ''),
-                        'tags': [tag.get('name', '') for tag in r.get('tags', [])]
-                    }
-                    for r in search_results if r.get('type') == 'brand' or 'brand' in r.get('name', '').lower()
+                # Try different search strategies
+                search_terms = [
+                    f"{entity}",
+                    f"{entity} brand",
+                    f"{entity} fashion",
+                    f"{entity} lifestyle"
                 ]
-                # Si no hay suficientes, agrega los primeros resultados
-                if len(filtered) < 3:
-                    filtered += [
-                        {
-                            'name': r.get('name', ''),
-                            'entity_id': r.get('entity_id', ''),
-                            'description': r.get('description', ''),
-                            'image': r.get('image', {}).get('url', ''),
-                            'tags': [tag.get('name', '') for tag in r.get('tags', [])]
-                        }
-                        for r in search_results if r.get('name', '').strip().lower() not in ['brand', 'place']
-                    ]
-                brands.extend(filtered)
+                
+                for term in search_terms:
+                    search_results = self.search_entities(term, limit=5)
+                    
+                    # Filter results to only include actual brands/places
+                    for result in search_results:
+                        if (result.get("name") and 
+                            result.get("entity_id") and
+                            "urn:entity" in result.get("types", [])):
+                            brands.append(result)
+                    
+                    # If we found some results, move to next entity
+                    if brands:
+                        break
+                        
             except Exception as e:
                 logger.error(f"Error getting brand recommendations for {entity}: {e}")
-        # Filtra, prioriza y limita
-        return self._filter_and_deduplicate(brands, exclude_names={"brand", "place"}, min_fields=["description", "image"], limit=3)
+                continue
+        
+        # Filter and deduplicate
+        return self._filter_and_deduplicate(brands, limit=5)
 
     def _get_place_recommendations(self, entities: List[str]) -> List[Dict[str, Any]]:
         """
         Get real place recommendations based on entities.
-        If no results with type 'place' are found, return the first results from the search.
+        Uses improved search terms and better filtering.
         """
         places = []
-        for entity in entities[:3]:
+        for entity in entities[:3]:  # Use first 3 entities
             try:
-                search_results = self.search_entities(f"{entity} place", limit=5)
-                filtered = [
-                    {
-                        'name': r.get('name', ''),
-                        'entity_id': r.get('entity_id', ''),
-                        'description': r.get('description', ''),
-                        'image': r.get('image', {}).get('url', ''),
-                        'tags': [tag.get('name', '') for tag in r.get('tags', [])]
-                    }
-                    for r in search_results if r.get('type') == 'place' or 'place' in r.get('name', '').lower()
+                # Try different search strategies for places
+                search_terms = [
+                    f"{entity} destination",
+                    f"{entity} city",
+                    f"{entity} place",
+                    f"{entity}"
                 ]
-                if len(filtered) < 3:
-                    filtered += [
-                        {
-                            'name': r.get('name', ''),
-                            'entity_id': r.get('entity_id', ''),
-                            'description': r.get('description', ''),
-                            'image': r.get('image', {}).get('url', ''),
-                            'tags': [tag.get('name', '') for tag in r.get('tags', [])]
-                        }
-                        for r in search_results if r.get('name', '').strip().lower() not in ['brand', 'place']
-                    ]
-                places.extend(filtered)
+                
+                for term in search_terms:
+                    search_results = self.search_entities(term, limit=5)
+                    
+                    # Filter results to only include actual places
+                    for result in search_results:
+                        if (result.get("name") and 
+                            result.get("entity_id") and
+                            "urn:entity" in result.get("types", [])):
+                            places.append(result)
+                    
+                    # If we found some results, move to next entity
+                    if places:
+                        break
+                        
             except Exception as e:
                 logger.error(f"Error getting place recommendations for {entity}: {e}")
-        return self._filter_and_deduplicate(places, exclude_names={"brand", "place"}, min_fields=["description", "image"], limit=3)
+                continue
+        
+        # Filter and deduplicate
+        return self._filter_and_deduplicate(places, limit=5)
     
     def get_matching_info(self, entities: List[str]) -> Dict[str, Any]:
         """

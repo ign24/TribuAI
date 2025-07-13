@@ -32,20 +32,44 @@ def create_parser_chain():
     prompt = PromptTemplate(
         input_variables=["input_text"],
         template="""
-You are TribuAI's cultural intelligence parser. Your task is to extract structured cultural entities and signals from user responses about their cultural preferences.
+You are TribuAI's expert cultural entity extractor. Your sole function is to analyze user input and extract structured cultural entities, assigning each to the closest relevant category, even if the user's wording is ambiguous or creative.
 
 ## User Input:
 {input_text}
 
 ## Instructions:
-Analyze the user's cultural preferences and extract the following for each relevant entity or interest:
+- Extract all relevant cultural entities, interests, or signals from the user's input.
+- For each entity, assign:
+  - name: The canonical name of the entity or interest
+  - type: One of Qloo's types (see mapping table below)
+  - tags: List of relevant tags or keywords (genres, styles, attributes, etc.)
+  - context: (Optional) Disambiguating details (city, country, year, etc.)
+- If the entity does not fit perfectly, assign it to the closest category by meaning.
+- If you can infer a relevant audience (group of people with shared tastes), include it as an entity of type "audience".
+- If the entity is an art style, movement, or form (e.g., Impressionism, Modern Sculpture), map it as type "art".
 
-- name: The canonical name of the entity or interest
-- type: One of Qloo's types (artist, brand, place, destination, book, movie, podcast, tv_show, video_game, tag, audience)
-- tags: List of relevant tags or keywords (genres, styles, attributes, etc.)
-- context: (Optional) Disambiguating details (city, country, year, etc.)
+## Type to Category Mapping Table:
+| type         | TribuAI category |
+|--------------|-----------------|
+| artist       | music           |
+| brand        | fashion         |
+| place        | places          |
+| destination  | places          |
+| tag          | values          |
+| audience     | audiences       |
+| movie        | art             |
+| book         | art             |
+| podcast      | art             |
+| tv_show      | art             |
+| video_game   | art             |
+| art          | art             |
 
-If you can infer a relevant audience (group of people with shared tastes), include it as an entity of type "audience".
+- If unsure, always choose the closest category from the table above.
+- Examples of ambiguous mapping:
+  - "horror movies" → type: movie → category: art
+  - "sci-fi books" → type: book → category: art
+  - "street photography" → type: tag or art → category: art
+  - "indie rock" → type: artist or tag → category: music
 
 ## Output Format:
 Return a JSON object with this structure:
@@ -53,18 +77,6 @@ Return a JSON object with this structure:
   "entities": [
     {{"name": "...", "type": "...", "tags": ["..."], "context": "..."}},
     ...
-  ]
-}}
-
-## Example:
-If user says "I love Japanese cinema, brutalist architecture, and old-school hip hop, and I feel at home in Berlin":
-{{
-  "entities": [
-    {{"name": "Japanese Cinema", "type": "movie", "tags": ["cinema", "Japan", "film"], "context": ""}},
-    {{"name": "Brutalist Architecture", "type": "tag", "tags": ["architecture", "minimalism"], "context": ""}},
-    {{"name": "Old-school Hip Hop", "type": "artist", "tags": ["hip hop", "music genre"], "context": ""}},
-    {{"name": "Berlin", "type": "place", "tags": ["city", "Europe"], "context": "Germany"}},
-    {{"name": "Indie Music Fans", "type": "audience", "tags": ["music", "indie"], "context": ""}}
   ]
 }}
 
